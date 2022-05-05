@@ -26,6 +26,7 @@ class Container {
     });
     return Content
     }
+    
      getAllContent(){
          
         let Contents=[]
@@ -41,7 +42,7 @@ class Container {
         return Contents
      }
      
-    deleteContentById(id){
+    deleteContentById(id,num){
         let Cont=[]
         let Contents=[]
         
@@ -51,19 +52,37 @@ class Container {
         } catch (error) {
             console.log('No hay archivo')
         }
-        Contents.forEach(ele => {
-        if(ele.id!=id){
-            Cont.push(ele)
-            
+        if(num==true){
+            Contents.forEach(ele => {
+                if(ele.id!=id){
+                    Cont.push(ele)
+                    
+                }
+                
+            });
+            let identificador=1
+            Cont.forEach(ele=>{
+                
+                ele.id=identificador
+                identificador++
+                })
+        }else{
+            Contents.forEach(ele => {
+                console.log(ele[0])
+                if(ele[0].id!=id){
+                    Cont.push(ele)
+                    
+                }
+                
+            });
+            /* let identificador=1
+            Cont.forEach(ele=>{
+                
+                ele.id=identificador
+                identificador++
+                }) */
         }
         
-    });
-    let identificador=1
-    Cont.forEach(ele=>{
-        
-        ele.id=identificador
-        identificador++
-        })
     
     fs.writeFileSync(this.nombreArchivo, JSON.stringify(Cont))
     
