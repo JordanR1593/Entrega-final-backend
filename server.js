@@ -3,8 +3,8 @@
 
 const express = require("express");
 const app = express();
-const routesProducts = require("./src/models/routes/routesProductos")
-const routesCarritos=require("./src/models/routes/routesCarrito")
+const routesProducts = require("./src/routes/routesProductos")
+const routesCarritos=require("./src/routes/routesCarrito")
 
 
 

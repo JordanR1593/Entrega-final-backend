@@ -1,8 +1,15 @@
 const express = require("express");
 const {Router}=express
 const carritosRoutes= Router()
-const {CarritoContainer}=require("../CarritoContainer")
+
+const {CarritoDao}=require("../daos/carritos/carritosDaoArchivo")
 const carrits=new CarritoContainer()
+
+// const { CarritoDaoFirestore } = require('../daos/carritos/carritosDaoFirestore')
+// const carrits = new CarritoDaoFirestore()
+
+//const { CarritoDaoMongo } = require('../daos/carritos/carritosDaoMongo')
+//const carrits = new CarritoDaoMongo()
 
 //GET
 

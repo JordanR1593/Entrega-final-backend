@@ -75,12 +75,7 @@ class Container {
                 }
                 
             });
-            /* let identificador=1
-            Cont.forEach(ele=>{
-                
-                ele.id=identificador
-                identificador++
-                }) */
+            
         }
         
     

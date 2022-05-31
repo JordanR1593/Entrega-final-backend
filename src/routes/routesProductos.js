@@ -1,7 +1,7 @@
 const express = require("express");
 const {Router}=express
 const productsRoutes= Router()
-const {ProductContainer}=require("../ProductContainer")
+const {ProductDao}=require("../daos/productos/productosDaoArchivo")
 const products=new ProductContainer()
 
 //GET

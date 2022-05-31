@@ -1,10 +1,9 @@
-
 const fs = require("fs");
-const {Container}= require("./Container")
-class ProductContainer extends Container {
+const {Container}= require("../Container")
+class ProductDao extends Container {
     constructor(){
-        super('./src/models/data/productos.json')
-       /*  this.nombreArchivo=fileName; */
+        super('../../data/productos.json')
+       
         this.id=0
         
     }
@@ -12,6 +11,7 @@ class ProductContainer extends Container {
     saveProducto(nombre,precio){
        
         let productos=[];
+        
         try {
             
             productos=(this.getAllContent())
@@ -19,34 +19,34 @@ class ProductContainer extends Container {
             console.log('No hay archivo')
         }
         productos.length>0?this.id=productos.length+1:this.id=1
-        let producto= {nombre:nombre,precio:precio,id:this.id}
+        let products= {nombre:nombre,precio:precio,id:this.id}
     
-        productos.push(producto)
+        productos.push(products)
         
                 
         fs.writeFileSync(this.nombreArchivo, JSON.stringify(productos))
     }
 
     editProductById(id,nombre,precio){
-        let usuarios=[]
-        let usuario=null
+        let productos=[]
+        let product=null
         try {
             
-            usuarios=this.getAllContent()
+            productos=this.getAllContent()
         } catch (error) {
             console.log('No hay archivo')
         }
         usuarios.forEach(user => {
         if(user.id==id){
-            usuario=user
-            usuario.nombre=nombre
-            usuario.precio=precio
+            product=user
+            user.nombre=nombre
+            user.precio=precio
         }
     });
-    fs.writeFileSync(this.nombreArchivo, JSON.stringify(usuarios))
+    fs.writeFileSync(this.nombreArchivo, JSON.stringify(productos))
     }
     
      
 }
 
-module.exports = {ProductContainer};
+module.exports = {ProductDao};

@@ -1,10 +1,10 @@
 
 const fs = require("fs");
-const {Container}= require("./Container")
-class CarritoContainer extends Container {
+const {Container}= require("../../contenedores/Container")
+class CarritoDao extends Container {
     constructor(){
-        super('./src/models/data/carritos.json')
-       /*  this.nombreArchivo=fileName; */
+        super("../../data/carrito.json")
+       
         this.id=0
         
     }
@@ -95,4 +95,4 @@ class CarritoContainer extends Container {
      
 }
 
-module.exports = {CarritoContainer};
+module.exports = {CarritoDao};
