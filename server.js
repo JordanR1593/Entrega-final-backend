@@ -15,7 +15,7 @@ const handlebars = require('express-handlebars');
 const UserModel = require('./src/models/usuarios');
 
 const multer= require('multer')
-const PORT = 8080;
+const PORT = process.env.PORT || 8080;
 
 let storage = multer.diskStorage({
     destination: function (req, file, cb) {
