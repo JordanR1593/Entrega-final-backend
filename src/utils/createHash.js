@@ -7,5 +7,4 @@ function createHash(password) {
         null
     )
 }
-
 module.exports = {createHash}

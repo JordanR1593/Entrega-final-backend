@@ -10,6 +10,7 @@ function getLogin(req, res) {
     }
 }
 
+
 function getSignup(req, res) {
     res.render('signup');
 }
