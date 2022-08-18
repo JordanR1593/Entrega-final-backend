@@ -1,12 +1,10 @@
-
 const mongoose = require('mongoose');
-require('dotenv').config()
-const configs = require('../config/globals')
+const { MONGO_URI } = require('../../config/globals')
 
-
-console.log(configs.MONGO_URI);
-
-
+mongoose.connect(MONGO_URI, {
+    useNewUrlParser: true, 
+    useUnifiedTopology: true
+  }, () => console.log('Connected'))
 
 const usuariosCollection = 'usuarios';
 
@@ -16,6 +14,6 @@ const UsuarioSchema = new mongoose.Schema({
     email: {type: String, required: true, max: 100},
     username: {type: String, required: true, max: 100},
     password: {type: String, required: true, max: 100}
-});
+})
 
-module.exports= mongoose.model(usuariosCollection, UsuarioSchema)
+module.exports = mongoose.model(usuariosCollection, UsuarioSchema)

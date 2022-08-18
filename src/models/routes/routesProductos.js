@@ -1,71 +1,98 @@
 const express = require("express");
-const {Router}=express
-const productsRoutes= Router()
-const {ProductContainer}=require("../ProductContainer")
-const products=new ProductContainer()
+const route = express();
 
-//GET
+route.use(express.static("./public"));
+const log4js = require("log4js");
+const ramdomsChild = require("../utils/ramdomsChild");
+const { fork } = require("child_process");
+const info = require("../utils/info");
+const passport = require("passport");
+const routes = require("../utils/controler");
+route.set("views", "./views");
 
-    productsRoutes.get('/',(req,res)=>{
-        let productos = products.getAllContent()
-        res.json((productos))
-    })
-    
-    productsRoutes.get('/:id',(req,res)=>{
-        let id= req.params.id
-        console.log("id: "+id)
-        let productos = products.getContentById(id)
-        
-        res.json((productos))
-    })
-    
-    //POST
-    productsRoutes.post("/",(req,res)=>{
-        
-        res.json(products.saveProducto(req.body.nombre,req.body.price))
-    })
-    //PUT
-    productsRoutes.put("/:id",(req,res)=>{
-        let id= req.params.id
-        res.json(products.editProductById(id,req.body.nombre,req.body.price))
-    })
-    //DELETE
-    productsRoutes.delete("/:id",(req,res)=>{
-        let id= req.params.id
-        res.json(products.deleteContentById(id))
-    })
-    
-    
 log4js.configure({
-    appenders: {
-      Console: { type: "console" },
-      // errorFile: { type: "file", filename:'loggerError.log' },
-      warnFile: { type: "file", filename: "warn.log" },
-      errorFile: { type: "file", filename: "error.log" },
-    },
-    categories: {
-      default: { appenders: ["warnFile", "Console"], level: "warn" },
-      info: { appenders: ["Console"], level: "info" },
-      error: { appenders: ["errorFile", "Console"], level: "error" },
-    },
-  });
-  let compression = null;
+  appenders: {
+    Console: { type: "console" },
+    // errorFile: { type: "file", filename:'loggerError.log' },
+    warnFile: { type: "file", filename: "warn.log" },
+    errorFile: { type: "file", filename: "error.log" },
+  },
+  categories: {
+    default: { appenders: ["warnFile", "Console"], level: "warn" },
+    info: { appenders: ["Console"], level: "info" },
+    error: { appenders: ["errorFile", "Console"], level: "error" },
+  },
+});
 
-  io.on("connection", (socket) => {
-    try {
-      let prueba = productos.read();
-      socket.emit("messages", prueba);
-      socket.on("new-message", (data1) => {
-        productos.save(data1);
-        prueba.push(data1);
-  
-        io.sockets.emit("messages", prueba);
-      });
-    } catch (error) {
-      let logger = log4js.getLogger("errorConsole");
-      logger.error("PROBANDO EL LOG DE ERROR");
+route.get("/", routes.getRoot);
+// LOGIN
+route.get("/login", routes.getLogin);
+route.post(
+  "/login",
+  passport.authenticate("login", { failureRedirect: "/error" }),
+  routes.postLogin
+);
+route.get("/failLogin", routes.getFaillogin);
+// SIGNUP
+route.get("/signUp", routes.getSignup);
+route.post("/signUp", routes.postSignup);
+route.get("failSingup", routes.getFailsignup);
+// LOGOUT
+route.get("/logout", routes.getLogout);
+route.get("/productos", routes.postLogin, (req, res) => {
+  res.render("main");
+});
+
+route.post("/productos", routes.postLogin, (req, res) => {
+  res.render("main", { isUser: true });
+});
+route.get("/chat", routes.chatLogin, (req, res) => {
+  res.render("about", { isUser: true });
+});
+route.get("/test/:num", (req, res) => {
+  try {
+    res.json(productos.mocks(req.params.num));
+  } catch (err) {
+    console.log(err);
+  }
+});
+route.get("/info", info);
+route.get("/api/randoms", (req, res) => {
+  try {
+    let num = null;
+    if (req.query.cant == undefined) {
+      num = 100000000;
+    } else {
+      num = req.query.cant;
     }
-  });
-    
+    const child = fork("utils/ramdomsChild.js");
+    child.send(num);
+    child.on("message", (data) => {
+      try {
+        let mensaje = `Se han calculado en total, ${num} numeros:`;
+        let result = JSON.parse(data);
+        res.render("calculator", { mensaje, result });
+      } catch (error) {
+        console.log("ERROR");
+        console.log(error);
+      }
+    });
 
-module.exports=productsRoutes
+  } catch (error) {
+    let logger = log4js.getLogger("errorConsole");
+
+    logger.error("Log Error");
+    console.log(error);
+  }
+});
+// FAIL ROUTE--------------------------------
+route.get("*", (req, res) => {
+  res.status(404).render("error", {});
+});
+
+module.exports = route;
+
+
+
+
+

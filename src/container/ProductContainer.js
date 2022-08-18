@@ -1,6 +1,6 @@
 
 const fs = require("fs");
-const {Container}= require("./Container")
+const {Container}= require("./containerArchivo/Container")
 class ProductContainer extends Container {
     constructor(){
         super('./src/models/data/productos.json')
