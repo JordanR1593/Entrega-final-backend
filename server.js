@@ -1,243 +1,249 @@
-
-
-
 const express = require("express");
 const app = express();
-const session = require('express-session');
-const passport = require('passport');
-const LocalStrategy = require('passport-local').Strategy;
-const routesProducts = require("./src/models/routes/routesProductos")
-const routesCarritos=require("./src/models/routes/routesCarrito")
-const routes=require("./src/models/routes/routesAutenticacion")
-const {validatePass} = require('./src/utils/passValidator');
-const {createHash} = require('./src/utils/createHash')
-const handlebars = require('express-handlebars');
-const UserModel = require('./src/models/usuarios');
 
-const multer= require('multer')
-const PORT = process.env.PORT || 8080;
+const PORT = parseInt(process.argv[2]) || 8080;
 
-let storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, 'uploads');
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.fieldname + '-' + Date.now());  
-    }
-})
+const { Server: HttpServer } = require("http");
+const { Server: IOServer } = require("socket.io");
 
-let upload = multer({storage: storage});
+const httpServer = new HttpServer(app);
+const io = new IOServer(httpServer);
 
+app.use(express.static("./public"));
 
+const route = require("./routes/productRoute");
 
-app.use(express.json()) 
-app.use(express.urlencoded({ extended: true }))
-app.use('/api/products', routesProducts)
-app.use('/api/carritos', routesCarritos)
+const multer = require("multer");
+const handlebars = require("express-handlebars");
+const dotenv = require("dotenv").config();
+const log4js = require("log4js");
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-app.engine(
-    "hbs", 
-    handlebars.engine({
-        extname: ".hbs",
-        defaultLayout: 'index.hbs',
-        layoutsDir: __dirname + "/src/views/layouts",
-        partialsDir: __dirname + "/src/views/partials/",
-        runtimeOptions: {
-            allowProtoPropertiesByDefault: true,
-            allowProtoMethodsByDefault: true,
-        }
-    })
-);
+const session = require("express-session");
+const passport = require("passport");
+const LocalStrategy = require("passport-local").Strategy;
 
-app.set('view engine', 'hbs');
-app.set('views', './src/views');
-app.use(express.static(__dirname + "/public"));
+const UserModel = require("../CLASE12-master/src/models/usuarios.js");
+const validatePass = require("../CLASE12-master/utils/passValidatos");
+const createHash = require("../CLASE12-master/utils/hashGenerator");
+const { TIEMPO_EXPIRACION } = require("../CLASE12-master/src/config/globals");
+
+// SOLO PARA SOCKET-----------------------
+const ChatContainer = require("./src/daos/daoFile/chatContainer");
+const ProductosContainer = require("./src/daos/daoFile/productosContainer");
+const { normalization } = require("./utils/normalizr");
+const info = require("./utils/info");
+const compressionRatio = require("./utils/calculator");
+const compression = require("compression");
 
 
-app.use(session({
-    secret: 'coderhouse',
-    cookie: {
+// SOLO PARA SOCKET-----------------------
+
+app.use(
+    session({
+      secret: "diego",
+      cookie: {
         httpOnly: false,
         secure: false,
-        maxAge: parseInt(3000)
+        maxAge: parseInt(TIEMPO_EXPIRACION),
+      },
+      rolling: true,
+      resave: true,
+      saveUninitialized: true,
+    })
+  );
+  
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+
+
+  passport.use(
+    "login",
+    new LocalStrategy((username, password, done) => {
+      UserModel.findOne({ username: username }, (err, user) => {
+        if (err) {
+          return done(err);
+        }
+        if (!user) {
+          console.log("User not finded");
+          return done(null, false);
+        }
+        if (!validatePass(user, password)) {
+          console.log("password or user invalid");
+          return done(null, false);
+        }
+        return done(null, user);
+      });
+    })
+  );
+  passport.serializeUser((user, callback) => {
+    callback(null, user._id);
+  });
+  passport.deserializeUser((id, callback) => {
+    UserModel.findById(id, callback);
+  });
+
+
+  passport.use(
+    "signup",
+    new LocalStrategy(
+      { passReqToCallback: true },
+      (req, username, password, done) => {
+        UserModel.findOne({ username: username }, (err, user) => {
+          if (err) {
+            console.log(`some issue happened: ${err}`);
+            return done(err);
+          }
+          if (user) {
+            console.log(`This User already exist. Try with some other `);
+            return done(null, false);
+          }
+          console.log(req.body);
+          const newUser = {
+            firstName: req.body.lastName,
+            lastName: req.body.firstName,
+            email: req.body.email,
+            username: username,
+            password: createHash(password),
+          };
+  
+          console.log(`NewUser:
+              ${newUser}`);
+  
+          UserModel.create(newUser, (err, userWithId) => {
+            if (err) {
+              console.log(`some issue happened: ${err}`);
+              return done(err);
+            }
+
+
+            console.log(userWithId);
+            console.log("user created Successfuly");
+            return done(null, userWithId);
+          });
+        });
+      }
+    )
+  );
+  
+  app.engine(
+    "hbs",
+    handlebars.engine({
+      extname: ".hbs",
+      defaultLayout: "index.hbs",
+      layoutsDir: __dirname + "/views/layouts",
+      partialsDir: __dirname + "/views/partials/",
+      runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true,
+      },
+    })
+  );
+  
+
+  app.set("view engine", "hbs");
+  app.set("views", "./views");
+  
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  
+  app.engine(
+    "hbs",
+    handlebars.engine({
+      extname: ".hbs",
+      defaultLayout: "index.hbs",
+      layoutsDir: __dirname + "/views/layouts",
+      partialsDir: __dirname + "/views/partials/",
+      runtimeOptions: {
+        allowProtoPropertiesByDefault: true,
+        allowProtoMethodsByDefault: true,
+      },
+    })
+  );
+
+
+  let storage = multer.diskStorage({
+    destination: function (req, res, cb) {
+      cb(null, "uploads");
     },
-    rolling: true,
-    resave: true,
-    saveUninitialized: true
-}))
-
-
-
-app.use(passport.initialize())
-app.use(passport.session())
-
-
-
-app.post('/uploadfile', upload.single('myFile'), (req, res, next) => {
-    const file = req.file;
-
-    if(!file) {
-        const error = new Error('please upload a file');
-        error.httpStatusCode = 400;
-        return next(error);
+    filename: function (req, file, cb) {
+      cb(null, file.fieldname + "-" + Date.now());
+    },
+  });
+  
+  app.use(route);
+  
+  
+  
+  const SERVER = httpServer.listen(PORT, () => {
+    console.log(`Server on ${PORT}`);
+  });
+  SERVER.on("Error", (error) => console.log("error en servidor ${error}"));
+  
+  const productos = new ProductosContainer();
+  const chatContainer = new ChatContainer();
+  
+  io.on("connection", (socket) => {
+    let compression = null;
+    try {
+      console.log("EN LA WEB PRINCIPAL DESDE EL BACK");
+      let prueba = productos.read();
+      socket.emit("messages", prueba);
+      socket.on("new-message", (data1) => {
+        productos.save(data1);
+        prueba.push(data1);
+  
+        io.sockets.emit("messages", prueba);
+      });
+    } catch (error) {
+      let logger = log4js.getLogger("errorConsole");
+      logger.error("PROBANDO EL LOG DE ERROR");
     }
-
-    res.send(file);
-})
-
-app.post('/uploadmultiple', upload.array('myFiles'), (req, res, next) => {
-    const files = req.files;
-
-    if(!files) {
-        const error = new Error('please choose files');
-        error.httpStatusCode = 400;
-        return next(error);
+  });
+  
+  // CHAT- ---------------------------------
+  io.on("connection", (socket) => {
+    console.log("io escuchando2");
+    try {
+      const chat = chatContainer.read();
+      const dataContainer = { id: 1, posts: [] };
+      dataContainer.posts = chat;
+      const chatNormalizado = normalization(dataContainer);
+      console.log("USUARIO CONECTADO AL CHAT");
+      socket.emit("chat", chatNormalizado);
+  
+      socket.on("newChat", (data) => {
+        data.author.avatar = "avatar";
+        chatContainer.save(data);
+        // CHAT: TODO EL HISTORIAL. DATA: NUEVO POST GUARDADO
+        chat.push(data);
+        // DATACONTAINER: SE LE DA EL FORMATO PARA QUE SEA NORMALIZADO
+        dataContainer.posts = chat;
+        let dataNocomprimida = JSON.stringify(dataContainer).length;
+        let dataNormalized = normalization(dataContainer);
+        let dataComprimida = JSON.stringify(dataNormalized).length;
+        compression = compressionRatio(dataNocomprimida, dataComprimida);
+      });
+  
+      try {
+        socket.emit("compression", compression);
+      } catch (error) {
+        let logger = log4js.getLogger("error");
+  
+        logger.error("Error: En la Compresion del Chat");
+        console.log(error);
+      }
+    } catch (error) {
+      let logger = log4js.getLogger("error");
+  
+      logger.error("Error: Hubo un error en la ruta del Chat");
+      console.log(error);
     }
-
-    res.send(files);
-})
+  });
 
 
 
-passport.use('login', new LocalStrategy(
-    (username, password, callback) => {
-        UserModel.findOne({ username: username }, (err, user) => {
-            if (err) {
-                return callback(err)
-            }
 
-            if (!user) {
-                console.log('No se encontro usuario');
-                return callback(null, false)
-            }
-
-            if(!validatePass(user, password)) {
-                console.log('Invalid Password');
-                return callback(null, false)
-            }
-
-            return callback(null, user)
-        })
-    }
-))
-
-
-passport.use('signup', new LocalStrategy(
-    {passReqToCallback: true}, (req, username, password, callback) => {
-        UserModel.findOne({ username: username }, (err, user) => {
-            if (err) {
-                console.log('Hay un error al registrarse');
-                return callback(err)
-            }
-
-            if (user) {
-                console.log('El usuario ya existe');
-                return callback(null, false)
-            }
-
-            console.log(req.body);
-
-            const newUser = {
-                firstName: req.body.firstname,
-                
-                lastName: req.body.lastname,
-                direccion: req.body.direccion,
-                edad: req.body.edad,
-                celular: req.body.celular,
-                email: req.body.email,
-                fotoUrl: req.body.fotoUrl,
-                username: username,
-                password: createHash(password)
-            }
-
-            console.log(newUser);
-
-
-            UserModel.create(newUser, (err, userWithId) => {
-                if (err) {
-                    console.log('Hay un error al registrarse');
-                    return callback(err)
-                }
-
-                console.log(userWithId);
-                console.log('Registro de usuario satisfactoria');
-
-                return callback(null, userWithId)
-            })
-        })
-    }
-))
-
-passport.serializeUser((user, callback) => {
-    callback(null, user._id)
-})
-
-passport.deserializeUser((id, callback) => {
-    UserModel.findById(id, callback)
-})
-
-app.get('/', routes.getRoot);
-
-//  LOGIN
-app.get('/login', routes.getLogin);
-app.post('/login', passport.authenticate('login', { failureRedirect: '/faillogin' }), routes.postLogin);
-app.get('/faillogin', routes.getFaillogin);
-
-//  SIGNUP
-app.get('/signup', routes.getSignup);
-app.post('/signup', passport.authenticate('signup', { failureRedirect: '/failsignup' }), routes.postSignup);
-app.get('/failsignup', routes.getFailsignup);
-
-//  LOGOUT
-app.get('/logout', routes.getLogout);
-
-
-// PROFILE
-app.get('/profile', routes.getProfile);
-
-app.get('/ruta-protegida', routes.checkAuthentication, (req, res) => {
-    res.render('protected')
-});
-
-//  FAIL ROUTE
-app.get('*', routes.failRoute);
-
-const cluster = require("cluster");
-const { fork } = require("child_process");
-const { app } = require("./app");
-const numCPUs = require("os").cpus().length;
-// const path = require("path");
-const { SERVER, route } = require("./routes/productRoute");
-
-const dotenv = require("dotenv");
-const { appendFile } = require("fs/promises");
-
-
-const MODO = process.argv[2] || "fork";
-
-if (MODO == "fork") {
-SERVER.listen(PORT, () => {
-  console.log(`Server on ${PORT}`);
-})
-SERVER.on("Error", (error) => console.log(`error en servidor ${error}`));
-} else {
-  console.log("MODO= cluster");
-  if (cluster.isMaster) {
-    for (let index = 0; index < numCPUs; index++) {
-      cluster.fork();
-      console.log(`Server Master on ${PORT}`);
-    }
-
-    cluster.on("exit", (worker) => {});
-  } else {
-    SERVER.listen(PORT, () => {
-      console.log(`Server Cluster on ${PORT}`);
-    });
-    SERVER.on("Error", (error) => console.log(`error en servidor ${error}`));
-}}
-
-const server=app.listen(PORT, ()=>{
-    console.log("escuchando puerto 8080")
-})
-server.on("error", error=> console.log(`Error en servidor ${error}`))
