@@ -7,7 +7,7 @@ const ramdomsChild = require("../utils/ramdomsChild");
 const { fork } = require("child_process");
 const info = require("../utils/info");
 const passport = require("passport");
-const routes = require("../utils/controler");
+const routes = require("../utils/control");
 route.set("views", "./views");
 
 log4js.configure({
