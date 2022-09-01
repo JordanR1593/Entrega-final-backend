@@ -178,10 +178,7 @@ app.use(
   
   
   
-  const SERVER = httpServer.listen(PORT, () => {
-    console.log(`Server on ${PORT}`);
-  });
-  SERVER.on("Error", (error) => console.log("error en servidor ${error}"));
+  
   
   const productos = new ProductosContainer();
   const chatContainer = new ChatContainer();
@@ -244,6 +241,15 @@ app.use(
     }
   });
 
+  const Route = new route();
 
+  app.use(Route.start());
+  
+  
+  
+  const SERVER = httpServer.listen(PORT, () => {
+    console.log(`Server on ${PORT}`);
+  });
+  SERVER.on("Error", (error) => console.log("error en servidor ${error}"));
 
 
